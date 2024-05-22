@@ -23,42 +23,45 @@ export class PublishService {
 
   async create(createPublishDto: CreatePublishDto, userId: number): Promise<any> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-
+  
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
+  
     const tags = await this.tagRepository.find({
       where: { id: In(createPublishDto.tagsId) },
     });
     const superpowers = await this.superpowerRepository.find({
       where: { id: In(createPublishDto.superpowersId) },
     });
-
+  
     if (!tags || tags.length === 0) {
       throw new NotFoundException('Tags not found');
     }
-
+  
     if (!superpowers || superpowers.length === 0) {
       throw new NotFoundException('Superpowers not found');
     }
-
+  
     const publish = this.publishRepository.create({
       ...createPublishDto,
       creator: user,
       tags,
       superpowers,
     });
-
+  
     await this.publishRepository.save(publish);
-
+  
+    user.publishesCount += 1;
+    await this.userRepository.save(user);
+  
     const userResponse: UserResponseDto = {
       id: user.id,
       fullName: user.fullName,
       position: user.position,
       superpower: user.superpower,
     };
-
+  
     return {
       ...publish,
       creator: userResponse,
